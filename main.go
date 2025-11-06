@@ -10,13 +10,13 @@ import (
 	"syscall"
 	"time"
 
+	netatmo "github.com/exzz/netatmo-api-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/oauth2"
 
-	"github.com/exzz/netatmo-api-go"
 	"github.com/xperimental/netatmo-exporter/v2/internal/collector"
 	"github.com/xperimental/netatmo-exporter/v2/internal/config"
 	"github.com/xperimental/netatmo-exporter/v2/internal/logger"
@@ -42,15 +42,17 @@ func main() {
 		log.Fatalf("Error in configuration: %s", err)
 	default:
 	}
-	log.SetLevel(logrus.Level(cfg.LogLevel))
 
+	log.SetLevel(logrus.Level(cfg.LogLevel))
 	log.Infof("netatmo-exporter %s (commit: %s)", Version, GitCommit)
+
 	client := netatmo.NewClient(cfg.Netatmo, tokenUpdated(cfg.TokenFile))
 
 	if cfg.TokenFile != "" {
 		token, err := loadToken(cfg.TokenFile)
 		switch {
 		case os.IsNotExist(err):
+			// no token file yet
 		case err != nil:
 			log.Fatalf("Error loading token: %s", err)
 		case !token.Expiry.IsZero() && token.Expiry.Before(time.Now()):
@@ -74,6 +76,9 @@ func main() {
 
 	metrics := collector.New(log, client.Read, cfg.RefreshInterval, cfg.StaleDuration)
 	prometheus.MustRegister(metrics)
+	
+	homeCoachMetrics := NewHomeCoachCollector(log, client.CurrentToken)
+	prometheus.MustRegister(homeCoachMetrics)
 
 	tokenMetric := token.Metric(client.CurrentToken)
 	prometheus.MustRegister(tokenMetric)
@@ -89,6 +94,7 @@ func main() {
 	http.Handle("/auth/authorize", web.AuthorizeHandler(cfg.ExternalURL, client))
 	http.Handle("/auth/callback", web.CallbackHandler(ctx, client))
 	http.Handle("/auth/settoken", web.SetTokenHandler(ctx, client))
+
 	http.Handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}))
 	http.Handle("/version", versionHandler(log))
 	http.Handle("/", web.HomeHandler(client.CurrentToken))
@@ -115,9 +121,11 @@ func loadToken(fileName string) (*oauth2.Token, error) {
 func registerSignalHandler(client *netatmo.Client, fileName string) {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, signals...)
+
 	go func() {
 		sig := <-ch
 		signal.Reset(signals...)
+
 		log.Debugf("Got signal: %s", sig)
 
 		if err := saveToken(client, fileName); err != nil {
@@ -153,6 +161,7 @@ func saveToken(client *netatmo.Client, fileName string) error {
 	}
 
 	log.Infof("Saving token to %s ...", fileName)
+
 	return saveTokenFile(fileName, token)
 }
 
