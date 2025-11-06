@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	netatmo "github.com/exzz/netatmo-api-go"
+	"github.com/exzz/netatmo-api-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -74,11 +74,19 @@ func main() {
 		log.Warn("No token-file set! Authentication will be lost on restart.")
 	}
 
-	metrics := collector.New(log, client.Read, cfg.RefreshInterval, cfg.StaleDuration)
-	prometheus.MustRegister(metrics)
-	
-	homeCoachMetrics := NewHomeCoachCollector(log, client.CurrentToken)
-	prometheus.MustRegister(homeCoachMetrics)
+	if cfg.EnableWeather {
+		metrics := collector.New(log, client.Read, cfg.RefreshInterval, cfg.StaleDuration)
+		prometheus.MustRegister(metrics)
+	} else {
+		log.Info("Weather station collector disabled by configuration.")
+	}
+
+	if cfg.EnableHomeCoach {
+		homeCoachMetrics := collector.NewHomeCoachCollector(log, client.CurrentToken, cfg.RefreshInterval, cfg.StaleDuration)
+		prometheus.MustRegister(homeCoachMetrics)
+	} else {
+		log.Info("HomeCoach collector disabled by configuration.")
+	}
 
 	tokenMetric := token.Metric(client.CurrentToken)
 	prometheus.MustRegister(tokenMetric)

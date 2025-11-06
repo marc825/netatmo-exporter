@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/exzz/netatmo-api-go"
@@ -21,6 +22,8 @@ const (
 	envVarStaleDuration       = "NETATMO_AGE_STALE"
 	envVarNetatmoClientID     = "NETATMO_CLIENT_ID"
 	envVarNetatmoClientSecret = "NETATMO_CLIENT_SECRET"
+	envVarEnableHomeCoach     = "NETATMO_ENABLE_HOMECOACH"
+	envVarEnableWeather       = "NETATMO_ENABLE_WEATHER"
 
 	flagListenAddress       = "addr"
 	flagExternalURL         = "external-url"
@@ -31,6 +34,8 @@ const (
 	flagStaleDuration       = "age-stale"
 	flagNetatmoClientID     = "client-id"
 	flagNetatmoClientSecret = "client-secret"
+	flagEnableHomeCoach      = "enable-homecoach"
+	flagEnableWeather        = "enable-weather"
 
 	defaultRefreshInterval = 8 * time.Minute
 	defaultStaleDuration   = 60 * time.Minute
@@ -42,6 +47,8 @@ var (
 		LogLevel:        logLevel(logrus.InfoLevel),
 		RefreshInterval: defaultRefreshInterval,
 		StaleDuration:   defaultStaleDuration,
+		EnableHomeCoach: true,
+		EnableWeather:   true,
 	}
 
 	errNoBinaryName          = errors.New("need the binary name as first argument")
@@ -81,6 +88,9 @@ type Config struct {
 	RefreshInterval time.Duration
 	StaleDuration   time.Duration
 	Netatmo         netatmo.Config
+	// Enable or disable individual collectors
+	EnableHomeCoach bool
+	EnableWeather   bool
 }
 
 // Parse takes the arguments and environment variables provided and creates the Config from that.
@@ -101,6 +111,8 @@ func Parse(args []string, getEnv func(string) string) (Config, error) {
 	flagSet.DurationVar(&cfg.StaleDuration, flagStaleDuration, cfg.StaleDuration, "Data age to consider as stale. Stale data does not create metrics anymore.")
 	flagSet.StringVarP(&cfg.Netatmo.ClientID, flagNetatmoClientID, "i", cfg.Netatmo.ClientID, "Client ID for NetAtmo app.")
 	flagSet.StringVarP(&cfg.Netatmo.ClientSecret, flagNetatmoClientSecret, "s", cfg.Netatmo.ClientSecret, "Client secret for NetAtmo app.")
+	flagSet.BoolVar(&cfg.EnableHomeCoach, flagEnableHomeCoach, cfg.EnableHomeCoach, "Enable HomeCoach collector.")
+	flagSet.BoolVar(&cfg.EnableWeather, flagEnableWeather, cfg.EnableWeather, "Enable Weather station collector.")
 
 	if err := flagSet.Parse(args[1:]); err != nil {
 		return Config{}, err
@@ -193,6 +205,30 @@ func applyEnvironment(cfg *Config, getenv func(string) string) error {
 
 	if envClientSecret := getenv(envVarNetatmoClientSecret); envClientSecret != "" {
 		cfg.Netatmo.ClientSecret = envClientSecret
+	}
+
+	if envEnableHome := getenv(envVarEnableHomeCoach); envEnableHome != "" {
+		v := strings.ToLower(envEnableHome)
+		switch v {
+		case "true":
+			cfg.EnableHomeCoach = true
+		case "false":
+			cfg.EnableHomeCoach = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s (expected 'true' or 'false')", envVarEnableHomeCoach, envEnableHome)
+		}
+	}
+
+	if envEnableWeather := getenv(envVarEnableWeather); envEnableWeather != "" {
+		v := strings.ToLower(envEnableWeather)
+		switch v {
+		case "true":
+			cfg.EnableWeather = true
+		case "false":
+			cfg.EnableWeather = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s (expected 'true' or 'false')", envVarEnableWeather, envEnableWeather)
+		}
 	}
 
 	return nil
