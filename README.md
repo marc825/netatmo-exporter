@@ -83,8 +83,8 @@ The exporter can be configured either via command line arguments (see previous s
 |             `NETATMO_AGE_STALE` | Data age to consider as stale. Stale data does not create metrics anymore. |                                                      `1h` |
 |             `NETATMO_CLIENT_ID` | Client ID for NetAtmo app.                                                 |                                                           |
 |         `NETATMO_CLIENT_SECRET` | Client secret for NetAtmo app.                                             |                                                           |
-|       `NETATMO_ENABLE_HOMECOACH`| Enable Monitoring for AirCare/HomeCoach true or false (default: true)      |                                                           |
-|        `NETATMO_ENABLE_WEATHER` | Enable Monitoring for Weather true or false (default: true)                |                                                           |
+|       `NETATMO_ENABLE_HOMECOACH`| Enable Monitoring for AirCare/HomeCoach true or false                      |                                                      true |
+|        `NETATMO_ENABLE_WEATHER` | Enable Monitoring for Weather true or false                                |                                                      true |
 
 ### Cached data
 
