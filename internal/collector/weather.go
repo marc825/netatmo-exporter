@@ -10,6 +10,9 @@ import (
 )
 
 var (
+    // Weather station specific labels
+    weatherLabels = []string{"module", "station", "home"}
+
     netatmoUpDesc = prometheus.NewDesc(prefix+"up",
         "Zero if there was an error during the last refresh try.",
         nil, nil)
@@ -38,71 +41,71 @@ var (
     updatedDesc = prometheus.NewDesc(
         sensorPrefix+"updated",
         "Timestamp of last update",
-        varLabels,
+        weatherLabels,
         nil)
 
     tempDesc = prometheus.NewDesc(
         sensorPrefix+"temperature_celsius",
         "Temperature measurement in celsius",
-        varLabels,
+        weatherLabels,
         nil)
 
     humidityDesc = prometheus.NewDesc(
         sensorPrefix+"humidity_percent",
         "Relative humidity measurement in percent",
-        varLabels,
+        weatherLabels,
         nil)
 
     cotwoDesc = prometheus.NewDesc(
         sensorPrefix+"co2_ppm",
         "Carbondioxide measurement in parts per million",
-        varLabels,
+        weatherLabels,
         nil)
 
     noiseDesc = prometheus.NewDesc(
         sensorPrefix+"noise_db",
         "Noise measurement in decibels",
-        varLabels,
+        weatherLabels,
         nil)
 
     pressureDesc = prometheus.NewDesc(
         sensorPrefix+"pressure_mb",
         "Atmospheric pressure measurement in millibar",
-        varLabels,
+        weatherLabels,
         nil)
 
     windStrengthDesc = prometheus.NewDesc(
         sensorPrefix+"wind_strength_kph",
         "Wind strength in kilometers per hour",
-        varLabels,
+        weatherLabels,
         nil)
 
     windDirectionDesc = prometheus.NewDesc(
         sensorPrefix+"wind_direction_degrees",
         "Wind direction in degrees",
-        varLabels,
+        weatherLabels,
         nil)
 
     rainDesc = prometheus.NewDesc(
         sensorPrefix+"rain_amount_mm",
         "Rain amount in millimeters",
-        varLabels,
+        weatherLabels,
         nil)
 
     batteryDesc = prometheus.NewDesc(
         sensorPrefix+"battery_percent",
         "Battery remaining life (10: low)",
-        varLabels,
+        weatherLabels,
         nil)
     wifiDesc = prometheus.NewDesc(
         sensorPrefix+"wifi_signal_strength",
         "Wifi signal strength (86: bad, 71: avg, 56: good)",
-        varLabels,
+        weatherLabels,
         nil)
     rfDesc = prometheus.NewDesc(
         sensorPrefix+"rf_signal_strength",
         "RF signal strength (90: lowest, 60: highest)",
-        varLabels,
+        weatherLabels,
         nil)
 )
 

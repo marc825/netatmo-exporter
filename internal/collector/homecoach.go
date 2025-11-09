@@ -1,7 +1,6 @@
 package collector
 
 import (
-    "context"
     "encoding/json"
     "fmt"
     "net/http"
@@ -10,57 +9,61 @@ import (
 
     "github.com/prometheus/client_golang/prometheus"
     "github.com/sirupsen/logrus"
-    "golang.org/x/oauth2"
 )
 
 var (
+    // HomeCoach specific labels
+    homecoachLabels = []string{"device_id", "device_name"}
+
     homecoachTemperatureDesc = prometheus.NewDesc(
         prefix+"homecoach_temperature",
         "Netatmo Home Coach measured temperature in degrees Celsius.",
-        deviceLabels,
+        homecoachLabels,
         nil,
     )
 
     homecoachHumidityDesc = prometheus.NewDesc(
         prefix+"homecoach_humidity",
         "Netatmo Home Coach measured humidity in percent.",
-        deviceLabels,
+        homecoachLabels,
         nil,
     )
 
     homecoachCO2Desc = prometheus.NewDesc(
         prefix+"homecoach_co2",
         "Netatmo Home Coach measured CO2 level in ppm.",
-        deviceLabels,
+        homecoachLabels,
         nil,
     )
 
     homecoachNoiseDesc = prometheus.NewDesc(
         prefix+"homecoach_noise",
         "Netatmo Home Coach measured noise level in dB.",
-        deviceLabels,
+        homecoachLabels,
         nil,
     )
 
     homecoachPressureDesc = prometheus.NewDesc(
         prefix+"homecoach_pressure",
         "Netatmo Home Coach measured pressure in mb.",
-        deviceLabels,
+        homecoachLabels,
         nil,
     )
 
     homecoachHealthIndexDesc = prometheus.NewDesc(
         prefix+"homecoach_health_index",
         "Netatmo Home Coach health index (0: Healthy, 1: Fine, 2: Fair, 3: Poor, 4: Unhealthy).",
-        deviceLabels,
+        homecoachLabels,
         nil,
     )
 )
 
-type HomeCoachCollector struct {
-    log       logrus.FieldLogger
-    tokenFunc func() (*oauth2.Token, error)
+// HomeCoachReadFunction definiert das Interface zum Lesen der HomeCoach Daten von der Netatmo API.
+type HomeCoachReadFunction func() (*HomeCoachResponse, error)
 
+type HomeCoachCollector struct {
+    log             logrus.FieldLogger
+    readFunction    HomeCoachReadFunction
     RefreshInterval time.Duration
     StaleThreshold  time.Duration
     clock           func() time.Time
@@ -69,15 +72,15 @@ type HomeCoachCollector struct {
     lastRefreshError    error
     lastRefreshDuration time.Duration
 
-    cacheLock     sync.RWMutex
+    cacheLock      sync.RWMutex
     cacheTimestamp time.Time
-    cachedData    *homeCoachResponse
+    cachedData     *HomeCoachResponse
 }
 
-func NewHomeCoachCollector(log logrus.FieldLogger, tokenFunc func() (*oauth2.Token, error), refreshInterval, staleDuration time.Duration) *HomeCoachCollector {
+func NewHomeCoachCollector(log logrus.FieldLogger, readFunction HomeCoachReadFunction, refreshInterval, staleDuration time.Duration) *HomeCoachCollector {
     return &HomeCoachCollector{
         log:             log,
-        tokenFunc:       tokenFunc,
+        readFunction:    readFunction,
         RefreshInterval: refreshInterval,
         StaleThreshold:  staleDuration,
         clock:           time.Now,
@@ -107,7 +110,8 @@ func (c *HomeCoachCollector) Collect(ch chan<- prometheus.Metric) {
     }
 
     for _, device := range c.cachedData.Body.Devices {
-        labels := []string{device.ID, device.Name, device.HomeName}
+        // Nur device_id und device_name
+        labels := []string{device.ID, device.StationName}
 
         c.sendMetric(ch, homecoachTemperatureDesc, prometheus.GaugeValue, float64(device.DashboardData.Temperature), labels...)
         c.sendMetric(ch, homecoachHumidityDesc, prometheus.GaugeValue, float64(device.DashboardData.Humidity), labels...)
@@ -126,23 +130,10 @@ func (c *HomeCoachCollector) refreshData(now time.Time) {
         c.lastRefreshDuration = c.clock().Sub(start)
     }(c.clock())
 
-    token, err := c.tokenFunc()
+    data, err := c.readFunction()
     c.lastRefreshError = err
     if err != nil {
-        c.log.Errorf("HomeCoachCollector: error getting token: %v", err)
-        return
-    }
-    if token == nil || !token.Valid() {
-        c.log.Debug("HomeCoachCollector: token not available or invalid, skipping refresh")
-        return
-    }
-
-    httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
-
-    data, err := fetchHomeCoachData(context.Background(), httpClient)
-    if err != nil {
-        c.lastRefreshError = err
-        c.log.Errorf("HomeCoachCollector: error fetching data: %v", err)
+        c.log.Errorf("HomeCoachCollector: error during refresh: %s", err)
         return
     }
 
@@ -161,27 +152,26 @@ func (c *HomeCoachCollector) sendMetric(ch chan<- prometheus.Metric, desc *prome
     ch <- m
 }
 
-type homeCoachResponse struct {
+type HomeCoachResponse struct {
     Body struct {
         Devices []struct {
-            ID        string `json:"_id"`
-            Name      string `json:"name"`
-            HomeName  string `json:"home_name"`
-            Type      string `json:"type"`
+            ID           string `json:"_id"`
+            StationName  string `json:"station_name"`
+            Type         string `json:"type"`
             DashboardData struct {
                 Temperature float32 `json:"Temperature"`
                 CO2        int32   `json:"CO2"`
                 Humidity   int32   `json:"Humidity"`
-                Noise      int32   `json:"Noise"`
-                Pressure   float32 `json:"Pressure"`
+                Noise     int32   `json:"Noise"`
+                Pressure  float32 `json:"Pressure"`
                 HealthIndex int32  `json:"health_idx"`
             } `json:"dashboard_data"`
         } `json:"devices"`
     } `json:"body"`
 }
 
-func fetchHomeCoachData(ctx context.Context, client *http.Client) (*homeCoachResponse, error) {
-    req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.netatmo.com/api/gethomecoachsdata", nil)
+func FetchHomeCoachData(client *http.Client) (*HomeCoachResponse, error) {
+    req, err := http.NewRequest(http.MethodGet, "https://api.netatmo.com/api/gethomecoachsdata", nil)
     if err != nil {
         return nil, fmt.Errorf("creating gethomecoachsdata request: %w", err)
     }
@@ -196,7 +186,7 @@ func fetchHomeCoachData(ctx context.Context, client *http.Client) (*homeCoachRes
         return nil, fmt.Errorf("gethomecoachsdata request failed: status %s", resp.Status)
     }
 
-    var result homeCoachResponse
+    var result HomeCoachResponse
     if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
         return nil, fmt.Errorf("decoding gethomecoachsdata response: %w", err)
     }

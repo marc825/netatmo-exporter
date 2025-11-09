@@ -82,7 +82,18 @@ func main() {
 	}
 
 	if cfg.EnableHomeCoach {
-		homeCoachMetrics := collector.NewHomeCoachCollector(log, client.CurrentToken, cfg.RefreshInterval, cfg.StaleDuration)
+		homeCoachMetrics := collector.NewHomeCoachCollector(log, func() (*collector.HomeCoachResponse, error) {
+			token, err := client.CurrentToken()
+			if err != nil {
+				return nil, fmt.Errorf("getting token: %w", err)
+			}
+			if token == nil || !token.Valid() {
+				return nil, fmt.Errorf("token not available or invalid")
+			}
+
+			httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
+			return collector.FetchHomeCoachData(httpClient)
+		}, cfg.RefreshInterval, cfg.StaleDuration)
 		prometheus.MustRegister(homeCoachMetrics)
 	} else {
 		log.Info("HomeCoach collector disabled by configuration.")

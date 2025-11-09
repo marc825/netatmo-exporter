@@ -50,6 +50,13 @@ For authentication, you either need to use the integrated web-interface of the e
 
 The exporter is able to persist the authentication token during restarts, so that no user interaction is needed when restarting the exporter, unless the token expired during the time the exporter was not active. See [token-file.md](/doc/token-file.md) for an explanation of the file used for persisting the token.
 
+### Scopes
+
+|                        Variable | Description                                                                |
+|--------------------------------:|----------------------------------------------------------------------------|
+| read_station                    | Read access to the NetAtmo weather station data.                          |
+| read_homecoach                  | Read access to the NetAtmo HomeCoach data.                                |
+
 ## Usage
 
 ```plain
