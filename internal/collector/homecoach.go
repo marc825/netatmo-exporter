@@ -15,6 +15,37 @@ var (
     // HomeCoach specific labels
     homecoachLabels = []string{"device_id", "device_name"}
 
+    // HomeCoach collector status metrics (analog zum Weather-Collector, aber homecoach-spezifisch benannt)
+    homecoachUpDesc = prometheus.NewDesc(
+        prefix+"homecoach_up",
+        "Zero if there was an error during the last refresh try.",
+        nil, nil,
+    )
+
+    homecoachRefreshIntervalDesc = prometheus.NewDesc(
+        prefix+"homecoach_refresh_interval_seconds",
+        "Contains the configured refresh interval in seconds. This is provided as a convenience for calculations with the cache update time.",
+        nil, nil,
+    )
+
+    homecoachRefreshPrefix        = prefix + "homecoach_last_refresh_"
+    homecoachRefreshTimestampDesc = prometheus.NewDesc(
+        homecoachRefreshPrefix+"time",
+        "Contains the time of the last refresh try, successful or not.",
+        nil, nil,
+    )
+    homecoachRefreshDurationDesc = prometheus.NewDesc(
+        homecoachRefreshPrefix+"duration_seconds",
+        "Contains the time it took for the last refresh to complete, even if it was unsuccessful.",
+        nil, nil,
+    )
+
+    homecoachCacheTimestampDesc = prometheus.NewDesc(
+        prefix+"homecoach_cache_updated_time",
+        "Contains the time of the cached data.",
+        nil, nil,
+    )
+
     homecoachTemperatureDesc = prometheus.NewDesc(
         prefix+"homecoach_temperature",
         "Netatmo Home Coach measured temperature in degrees Celsius.",
@@ -88,6 +119,14 @@ func NewHomeCoachCollector(log logrus.FieldLogger, readFunction HomeCoachReadFun
 }
 
 func (c *HomeCoachCollector) Describe(ch chan<- *prometheus.Desc) {
+    // Status-Metriken
+    ch <- homecoachUpDesc
+    ch <- homecoachRefreshIntervalDesc
+    ch <- homecoachRefreshTimestampDesc
+    ch <- homecoachRefreshDurationDesc
+    ch <- homecoachCacheTimestampDesc
+
+    // Daten-Metriken
     ch <- homecoachTemperatureDesc
     ch <- homecoachHumidityDesc
     ch <- homecoachCO2Desc
@@ -102,9 +141,20 @@ func (c *HomeCoachCollector) Collect(ch chan<- prometheus.Metric) {
         go c.refreshData(now)
     }
 
+    // Status-Metriken senden
+    upValue := 1.0
+    if c.lastRefresh.IsZero() || c.lastRefreshError != nil {
+        upValue = 0
+    }
+    c.sendMetric(ch, homecoachUpDesc, prometheus.GaugeValue, upValue)
+    c.sendMetric(ch, homecoachRefreshIntervalDesc, prometheus.GaugeValue, c.RefreshInterval.Seconds())
+    c.sendMetric(ch, homecoachRefreshTimestampDesc, prometheus.GaugeValue, convertTime(c.lastRefresh))
+    c.sendMetric(ch, homecoachRefreshDurationDesc, prometheus.GaugeValue, c.lastRefreshDuration.Seconds())
+
     c.cacheLock.RLock()
     defer c.cacheLock.RUnlock()
 
+    c.sendMetric(ch, homecoachCacheTimestampDesc, prometheus.GaugeValue, convertTime(c.cacheTimestamp))
     if c.cachedData == nil {
         return
     }
