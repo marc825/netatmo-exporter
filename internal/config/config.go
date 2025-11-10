@@ -24,6 +24,7 @@ const (
 	envVarNetatmoClientSecret = "NETATMO_CLIENT_SECRET"
 	envVarEnableHomeCoach     = "NETATMO_ENABLE_HOMECOACH"
 	envVarEnableWeather       = "NETATMO_ENABLE_WEATHER"
+	envVarEnableGoMetrics     = "NETATMO_ENABLE_GO_METRICS"
 
 	flagListenAddress       = "addr"
 	flagExternalURL         = "external-url"
@@ -36,6 +37,7 @@ const (
 	flagNetatmoClientSecret = "client-secret"
 	flagEnableHomeCoach      = "enable-homecoach"
 	flagEnableWeather        = "enable-weather"
+	flagEnableGoMetrics      = "enable-go-metrics"
 
 	defaultRefreshInterval = 8 * time.Minute
 	defaultStaleDuration   = 60 * time.Minute
@@ -49,6 +51,7 @@ var (
 		StaleDuration:   defaultStaleDuration,
 		EnableHomeCoach: true,
 		EnableWeather:   true,
+		EnableGoMetrics: false, // Standard: Go-Metriken ausblenden
 	}
 
 	errNoBinaryName          = errors.New("need the binary name as first argument")
@@ -91,6 +94,7 @@ type Config struct {
 	// Enable or disable individual collectors
 	EnableHomeCoach bool
 	EnableWeather   bool
+	EnableGoMetrics bool // Go Runtime Metriken (GC, Memory, Goroutines)
 }
 
 // Parse takes the arguments and environment variables provided and creates the Config from that.
@@ -113,6 +117,7 @@ func Parse(args []string, getEnv func(string) string) (Config, error) {
 	flagSet.StringVarP(&cfg.Netatmo.ClientSecret, flagNetatmoClientSecret, "s", cfg.Netatmo.ClientSecret, "Client secret for NetAtmo app.")
 	flagSet.BoolVar(&cfg.EnableHomeCoach, flagEnableHomeCoach, cfg.EnableHomeCoach, "Enable HomeCoach collector.")
 	flagSet.BoolVar(&cfg.EnableWeather, flagEnableWeather, cfg.EnableWeather, "Enable Weather station collector.")
+	flagSet.BoolVar(&cfg.EnableGoMetrics, flagEnableGoMetrics, cfg.EnableGoMetrics, "Enable Go runtime metrics (GC, memory, goroutines).")
 
 	if err := flagSet.Parse(args[1:]); err != nil {
 		return Config{}, err
@@ -228,6 +233,18 @@ func applyEnvironment(cfg *Config, getenv func(string) string) error {
 			cfg.EnableWeather = false
 		default:
 			return fmt.Errorf("invalid value for %s: %s (expected 'true' or 'false')", envVarEnableWeather, envEnableWeather)
+		}
+	}
+
+	if envEnableGoMetrics := getenv(envVarEnableGoMetrics); envEnableGoMetrics != "" {
+		v := strings.ToLower(envEnableGoMetrics)
+		switch v {
+		case "true":
+			cfg.EnableGoMetrics = true
+		case "false":
+			cfg.EnableGoMetrics = false
+		default:
+			return fmt.Errorf("invalid value for %s: %s (expected 'true' or 'false')", envVarEnableGoMetrics, envEnableGoMetrics)
 		}
 	}
 

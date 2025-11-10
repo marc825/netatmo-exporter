@@ -92,6 +92,7 @@ The exporter can be configured either via command line arguments (see previous s
 |         `NETATMO_CLIENT_SECRET` | Client secret for NetAtmo app.                                             |                                                           |
 |       `NETATMO_ENABLE_HOMECOACH`| Enable Monitoring for AirCare/HomeCoach true or false                      |                                                      true |
 |        `NETATMO_ENABLE_WEATHER` | Enable Monitoring for Weather true or false                                |                                                      true |
+|     `NETATMO_ENABLE_GO_METRICS` | Enable Monitoring for Go runtime metrics (GC, memory, goroutines) true or false |                                                      false |
 
 ### Cached data
 

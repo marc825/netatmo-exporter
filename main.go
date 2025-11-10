@@ -46,6 +46,16 @@ func main() {
 	log.SetLevel(logrus.Level(cfg.LogLevel))
 	log.Infof("netatmo-exporter %s (commit: %s)", Version, GitCommit)
 
+	// Erstelle eigene Registry, um Go-Runtime-Metriken optional zu machen
+	registry := prometheus.NewRegistry()
+	if cfg.EnableGoMetrics {
+		log.Info("Go runtime metrics enabled.")
+		registry.MustRegister(prometheus.NewGoCollector())
+		registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	} else {
+		log.Info("Go runtime metrics disabled.")
+	}
+
 	client := netatmo.NewClient(cfg.Netatmo, tokenUpdated(cfg.TokenFile))
 
 	if cfg.TokenFile != "" {
@@ -76,7 +86,7 @@ func main() {
 
 	if cfg.EnableWeather {
 		metrics := collector.New(log, client.Read, cfg.RefreshInterval, cfg.StaleDuration)
-		prometheus.MustRegister(metrics)
+		registry.MustRegister(metrics)
 	} else {
 		log.Info("Weather station collector disabled by configuration.")
 	}
@@ -94,13 +104,13 @@ func main() {
 			httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
 			return collector.FetchHomeCoachData(httpClient)
 		}, cfg.RefreshInterval, cfg.StaleDuration)
-		prometheus.MustRegister(homeCoachMetrics)
+		registry.MustRegister(homeCoachMetrics)
 	} else {
 		log.Info("HomeCoach collector disabled by configuration.")
 	}
 
 	tokenMetric := token.Metric(client.CurrentToken)
-	prometheus.MustRegister(tokenMetric)
+	registry.MustRegister(tokenMetric)
 
 	if cfg.DebugHandlers {
 		http.Handle("/debug/data", web.DebugDataHandler(log, client.Read))
@@ -114,7 +124,7 @@ func main() {
 	http.Handle("/auth/callback", web.CallbackHandler(ctx, client))
 	http.Handle("/auth/settoken", web.SetTokenHandler(ctx, client))
 
-	http.Handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{}))
+	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	http.Handle("/version", versionHandler(log))
 	http.Handle("/", web.HomeHandler(client.CurrentToken))
 
