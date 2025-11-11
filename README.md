@@ -3,7 +3,17 @@
 Simple [prometheus](https://prometheus.io) exporter for getting sensor values [NetAtmo](https://www.netatmo.com) sensors into prometheus.
 
 **This is a fork of the original [netatmo-exporter](https://github.com/exzz/netatmo-exporter)**
+
 **This is work so no guarantees are given that this works as expected. Use at your own risk.**
+
+Goal of this fork is to extend the original netatmo-exporter with additional features and optimize it for my personal use-cases. If you are looking for the original project, please visit the link above.
+
+## Features
+
+This fork includes all features of the original netatmo-exporter plus the following:
+- Added monitoring for Netatmo HomeCoach/AirCare devices
+- Enable/Disable monitoring for Weather and HomeCoach via environment variables
+- Combined debug handler for Weather and HomeCoach data
 
 ## Installation
 
