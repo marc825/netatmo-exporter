@@ -8,9 +8,11 @@ import (
 
 	"github.com/exzz/netatmo-api-go"
 	"github.com/sirupsen/logrus"
-	"github.com/xperimental/netatmo-exporter/v2/internal/collector"
+	"github.com/marc825/netatmo-exporter/v2/internal/collector"
 	"golang.org/x/oauth2"
-// DebugNetatmoHandler creates a handler that displays both weather and homecoach data
+)
+
+// DebugNetatmoHandler erstellt einen Handler, der sowohl Weather- als auch HomeCoach-Daten anzeigt
 func DebugNetatmoHandler(log logrus.FieldLogger, weatherReadFunc func() (*netatmo.DeviceCollection, error), homecoachReadFunc func() (*collector.HomeCoachResponse, error)) http.Handler {
 	return http.HandlerFunc(func(wr http.ResponseWriter, r *http.Request) {
 		// only allow GET

@@ -17,11 +17,11 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/oauth2"
 
-	"github.com/xperimental/netatmo-exporter/v2/internal/collector"
-	"github.com/xperimental/netatmo-exporter/v2/internal/config"
-	"github.com/xperimental/netatmo-exporter/v2/internal/logger"
-	"github.com/xperimental/netatmo-exporter/v2/internal/token"
-	"github.com/xperimental/netatmo-exporter/v2/internal/web"
+	"github.com/marc825/netatmo-exporter/v2/internal/collector"
+	"github.com/marc825/netatmo-exporter/v2/internal/config"
+	"github.com/marc825/netatmo-exporter/v2/internal/logger"
+	"github.com/marc825/netatmo-exporter/v2/internal/token"
+	"github.com/marc825/netatmo-exporter/v2/internal/web"
 )
 
 var (

@@ -205,18 +205,55 @@ func (c *HomeCoachCollector) sendMetric(ch chan<- prometheus.Metric, desc *prome
 type HomeCoachResponse struct {
     Body struct {
         Devices []struct {
-            ID           string `json:"_id"`
-            StationName  string `json:"station_name"`
-            Type         string `json:"type"`
+            ID              string   `json:"_id"`
+            DateSetup       int64    `json:"date_setup"`
+            LastSetup       int64    `json:"last_setup"`
+            Type            string   `json:"type"`
+            LastStatusStore int64    `json:"last_status_store"`
+            ModuleName      string   `json:"module_name"`
+            Firmware        int      `json:"firmware"`
+            LastUpgrade     int64    `json:"last_upgrade"`
+            WifiStatus      int      `json:"wifi_status"`
+            Reachable       bool     `json:"reachable"`
+            CO2Calibrating  bool     `json:"co2_calibrating"`
+            StationName     string   `json:"station_name"`
+            DataType        []string `json:"data_type"`
+            Place           struct {
+                Altitude int      `json:"altitude"`
+                City     string   `json:"city"`
+                Country  string   `json:"country"`
+                Timezone string   `json:"timezone"`
+                Location []float64 `json:"location"`
+            } `json:"place"`
             DashboardData struct {
-                Temperature float32 `json:"Temperature"`
-                CO2        int32   `json:"CO2"`
-                Humidity   int32   `json:"Humidity"`
-                Noise     int32   `json:"Noise"`
-                Pressure  float32 `json:"Pressure"`
-                HealthIndex int32  `json:"health_idx"`
+                TimeUTC         int64   `json:"time_utc"`
+                Temperature     float32 `json:"Temperature"`
+                CO2             int32   `json:"CO2"`
+                Humidity        int32   `json:"Humidity"`
+                Noise           int32   `json:"Noise"`
+                Pressure        float32 `json:"Pressure"`
+                AbsolutePressure float32 `json:"AbsolutePressure"`
+                HealthIndex     int32   `json:"health_idx"`
+                MinTemp         float32 `json:"min_temp"`
+                MaxTemp         float32 `json:"max_temp"`
+                DateMaxTemp     int64   `json:"date_max_temp"`
+                DateMinTemp     int64   `json:"date_min_temp"`
             } `json:"dashboard_data"`
+            Name     string `json:"name"`
+            ReadOnly bool   `json:"read_only"`
         } `json:"devices"`
+        User struct {
+            Mail           string `json:"mail"`
+            Administrative struct {
+                Lang          string `json:"lang"`
+                RegLocale     string `json:"reg_locale"`
+                Country       string `json:"country"`
+                Unit          int    `json:"unit"`
+                Windunit      int    `json:"windunit"`
+                Pressureunit  int    `json:"pressureunit"`
+                FeelLikeAlgo  int    `json:"feel_like_algo"`
+            } `json:"administrative"`
+        } `json:"user"`
     } `json:"body"`
 }
 

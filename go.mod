@@ -1,4 +1,4 @@
-module github.com/xperimental/netatmo-exporter/v2
+module github.com/marc825/netatmo-exporter/v2
 
 go 1.23.0
 

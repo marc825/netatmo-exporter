@@ -18,7 +18,7 @@ COPY . /build/
 RUN make build-binary
 
 FROM busybox
-LABEL maintainer="Robert Jacob <xperimental@solidproject.de>"
+LABEL maintainer="marc825"
 
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /build/netatmo-exporter /bin/netatmo-exporter

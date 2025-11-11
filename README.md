@@ -2,6 +2,9 @@
 
 Simple [prometheus](https://prometheus.io) exporter for getting sensor values [NetAtmo](https://www.netatmo.com) sensors into prometheus.
 
+**This is a fork of the original [netatmo-exporter](https://github.com/exzz/netatmo-exporter)**
+**This is work so no guarantees are given that this works as expected. Use at your own risk.**
+
 ## Installation
 
 #### Token file and Docker volume
