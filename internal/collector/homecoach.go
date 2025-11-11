@@ -87,6 +87,13 @@ var (
         homecoachLabels,
         nil,
     )
+
+    homecoachWifiDesc = prometheus.NewDesc(
+        prefix+"homecoach_wifi_signal_strength",
+        "Wifi signal strength (86: bad, 71: avg, 56: good).",
+        homecoachLabels,
+        nil,
+    )
 )
 
 // HomeCoachReadFunction definiert das Interface zum Lesen der HomeCoach Daten von der Netatmo API.
@@ -133,6 +140,7 @@ func (c *HomeCoachCollector) Describe(ch chan<- *prometheus.Desc) {
     ch <- homecoachNoiseDesc
     ch <- homecoachPressureDesc
     ch <- homecoachHealthIndexDesc
+    ch <- homecoachWifiDesc
 }
 
 func (c *HomeCoachCollector) Collect(ch chan<- prometheus.Metric) {
@@ -169,6 +177,7 @@ func (c *HomeCoachCollector) Collect(ch chan<- prometheus.Metric) {
         c.sendMetric(ch, homecoachNoiseDesc, prometheus.GaugeValue, float64(device.DashboardData.Noise), labels...)
         c.sendMetric(ch, homecoachPressureDesc, prometheus.GaugeValue, float64(device.DashboardData.Pressure), labels...)
         c.sendMetric(ch, homecoachHealthIndexDesc, prometheus.GaugeValue, float64(device.DashboardData.HealthIndex), labels...)
+        c.sendMetric(ch, homecoachWifiDesc, prometheus.GaugeValue, float64(device.WifiStatus), labels...)
     }
 }
 
