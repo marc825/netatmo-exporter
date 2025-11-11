@@ -46,7 +46,7 @@ func main() {
 	log.SetLevel(logrus.Level(cfg.LogLevel))
 	log.Infof("netatmo-exporter %s (commit: %s)", Version, GitCommit)
 
-	// Erstelle eigene Registry, um Go-Runtime-Metriken optional zu machen
+	// Prometheus Registry
 	registry := prometheus.NewRegistry()
 	if cfg.EnableGoMetrics {
 		log.Info("Go runtime metrics enabled.")
@@ -113,6 +113,21 @@ func main() {
 	registry.MustRegister(tokenMetric)
 
 	if cfg.DebugHandlers {
+		// Combined debug handler for Weather + HomeCoach
+		homecoachReadFunc := func() (*collector.HomeCoachResponse, error) {
+			token, err := client.CurrentToken()
+			if err != nil {
+				return nil, fmt.Errorf("getting token: %w", err)
+			}
+			if token == nil || !token.Valid() {
+				return nil, fmt.Errorf("token not available or invalid")
+			}
+
+			httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
+			return collector.FetchHomeCoachData(httpClient)
+		}
+
+		http.Handle("/debug/netatmo", web.DebugNetatmoHandler(log, client.Read, homecoachReadFunc))
 		http.Handle("/debug/data", web.DebugDataHandler(log, client.Read))
 		http.Handle("/debug/token", web.DebugTokenHandler(log, client.CurrentToken))
 	}

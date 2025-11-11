@@ -4,36 +4,11 @@ Simple [prometheus](https://prometheus.io) exporter for getting sensor values [N
 
 ## Installation
 
-### Run docker container
-
-The exporter is available as a Docker image both on DockerHub and GitHub:
-
-- [`ghcr.io/xperimental/netatmo-exporter`](https://github.com/xperimental/netatmo-exporter/pkgs/container/netatmo-exporter)
-- [`xperimental/netatmo-exporter`](https://hub.docker.com/r/xperimental/netatmo-exporter/)
-
-The following tags are available:
-
-- `x.y.z` pointing to the release with that version
-- `latest` pointing to the most recent released version
-- `master` pointing to the latest build from the default branch
-
 #### Token file and Docker volume
 
 When running the `netatmo-exporter` in Docker, it is recommended to store the token file in a "Docker volume", so that it can persist container recreation. The image is already set up to do that. The default path for the token file is `/var/lib/netatmo-exporter/netatmo-token.json` and the whole `/var/lib/netatmo-exporter/` directory is set as a volume.
 
 This enables the user to update the used netatmo-exporter image without losing the authentication, for example using `docker compose`. It does not automatically provide the same mechanism on Kubernetes, though. For Kubernetes, you probably want a `StatefulSet`.
-
-### Build from source
-
-Because this program uses the "Go Module" feature introduced in Go 1.11, you'll need at least that version of Go for building it.
-
-If you have a working Go installation, getting the binary should be as simple as
-
-```bash
-git clone https://github.com/xperimental/netatmo-exporter
-cd netatmo-exporter
-make
-```
 
 If you want to build the exporter for a different OS or architecture, you can specify arguments to the Makefile:
 
@@ -50,7 +25,7 @@ For authentication, you either need to use the integrated web-interface of the e
 
 The exporter is able to persist the authentication token during restarts, so that no user interaction is needed when restarting the exporter, unless the token expired during the time the exporter was not active. See [token-file.md](/doc/token-file.md) for an explanation of the file used for persisting the token.
 
-### Scopes
+### Required Netatmo API Scopes
 
 |                        Variable | Description                                                                |
 |--------------------------------:|----------------------------------------------------------------------------|
@@ -94,6 +69,26 @@ The exporter can be configured either via command line arguments (see previous s
 |        `NETATMO_ENABLE_WEATHER` | Enable Monitoring for Weather true or false                                |                                                      true |
 |     `NETATMO_ENABLE_GO_METRICS` | Enable Monitoring for Go runtime metrics (GC, memory, goroutines) true or false |                                                      false |
 
+### Debugging HTTP handlers
+
+When the `--debug-handlers` flag is set (or the `DEBUG_HANDLERS` environment variable is set to `true`), the exporter will expose additional debugging HTTP handlers on the `/debug/netatmo` endpoint. This can be useful for profiling the application if you experience issues.
+
+The Data will be displayed in the Format  :
+```
+{
+  "weather": {
+    "devices": [
+      ...
+    ]
+  },
+  "homecoach": {
+    "devices": [
+      ...
+    ]
+  }
+}
+```
+
 ### Cached data
 
 The exporter has an in-memory cache for the data retrieved from the Netatmo API. The purpose of this is to decouple making requests to the Netatmo API from the scraping interval as the data from Netatmo does not update nearly as fast as the default scrape interval of Prometheus. Per the Netatmo documentation the sensor data is updated every ten minutes. The default "refresh interval" of the exporter is set a bit below this (8 minutes), but still much higher than the default Prometheus scrape interval (15 seconds).
@@ -107,15 +102,3 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9210']
 ```
-
-### Troubleshooting
-
-There have been issues with stale data in the NetAtmo account causing authentication issues. If you are getting `invalid_grant` errors when refreshing a token or the data refresh fails with an `Invalid access token` error then you might have this issue with your account.
-
-In that case look at your [account page](https://home.netatmo.com/settings/my-account), navigate to the list of "Partner-Apps" and remove all entries related to the netatmo-exporter. The same option is also available in the mobile app.
-
-Once this is done, remove the token file from the netatmo-exporter and re-authenticate.
-
-## Links
-
-- [Grafana Dashboard](https://grafana.com/grafana/dashboards/13672) contributed by [@GordonFreemanK](https://github.com/GordonFreemanK)
