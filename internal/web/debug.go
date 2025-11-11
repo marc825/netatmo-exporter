@@ -84,30 +84,6 @@ func DebugNetatmoHandler(log logrus.FieldLogger, weatherReadFunc func() (*netatm
 	})
 }
 
-// DebugDataHandler creates a handler which returns the raw data retrieved from Netatmo API
-func DebugDataHandler(log logrus.FieldLogger, readFunc func() (*netatmo.DeviceCollection, error)) http.Handler {
-	return http.HandlerFunc(func(wr http.ResponseWriter, r *http.Request) {
-		// only allow GET
-		if r.Method != http.MethodGet {
-			http.Error(wr, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		devices, err := readFunc()
-		if err != nil {
-			http.Error(wr, fmt.Sprintf("Error retrieving data: %s", err), http.StatusBadGateway)
-			return
-		}
-
-		wr.Header().Set("Content-Type", "application/json")
-		enc := json.NewEncoder(wr)
-		enc.SetIndent("", "  ")
-		if err := enc.Encode(devices); err != nil {
-			log.Errorf("Can not encode data debug response: %s", err)
-			return
-		}
-	})
-}
 
 // DebugTokenHandler creates a handler which returns information about the currently-used token
 func DebugTokenHandler(log logrus.FieldLogger, tokenFunc func() (*oauth2.Token, error)) http.Handler {

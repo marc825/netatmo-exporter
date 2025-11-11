@@ -127,9 +127,8 @@ func main() {
 			return collector.FetchHomeCoachData(httpClient)
 		}
 
-		http.Handle("/debug/netatmo", web.DebugNetatmoHandler(log, client.Read, homecoachReadFunc))
-		http.Handle("/debug/data", web.DebugDataHandler(log, client.Read))
-		http.Handle("/debug/token", web.DebugTokenHandler(log, client.CurrentToken))
+	http.Handle("/debug/netatmo", web.DebugNetatmoHandler(log, client.Read, homecoachReadFunc))
+	http.Handle("/debug/token", web.DebugTokenHandler(log, client.CurrentToken))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
