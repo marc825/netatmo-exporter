@@ -17,6 +17,27 @@ This fork includes all features of the original netatmo-exporter plus the follow
 
 ## Installation
 
+#### Docker
+
+latest dev build marc825/netatmo-exporter:dev
+
+Example using `docker run` and volume for token persistence:
+
+```bash
+docker run -d --name netatmo-exporter --restart unless-stopped `
+  -p 127.0.0.1:9210:9210 `
+  -v netatmo_data:/var/lib/netatmo-exporter `
+  -e NETATMO_CLIENT_ID="<DEINE_CLIENT_ID>" `
+  -e NETATMO_CLIENT_SECRET="<DEIN_CLIENT_SECRET>" `
+  -e NETATMO_EXPORTER_EXTERNAL_URL="http://localhost:9210" `
+  -e NETATMO_ENABLE_WEATHER="true" `
+  -e NETATMO_ENABLE_HOMECOACH="true" `
+  -e NETATMO_ENABLE_GO_METRICS="false" `
+  -e DEBUG_HANDLERS="false" `
+  marc825/netatmo-exporter:dev
+```
+
+
 #### Token file and Docker volume
 
 When running the `netatmo-exporter` in Docker, it is recommended to store the token file in a "Docker volume", so that it can persist container recreation. The image is already set up to do that. The default path for the token file is `/var/lib/netatmo-exporter/netatmo-token.json` and the whole `/var/lib/netatmo-exporter/` directory is set as a volume.
@@ -87,7 +108,8 @@ The exporter can be configured either via command line arguments (see previous s
 When the `--debug-handlers` flag is set (or the `DEBUG_HANDLERS` environment variable is set to `true`), the exporter will expose additional debugging HTTP handlers on the `/debug/netatmo` endpoint. This can be useful for profiling the application if you experience issues.
 
 The Data will be displayed in the Format  :
-```
+
+```json
 {
   "weather": {
     "devices": [
