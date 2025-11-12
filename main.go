@@ -138,7 +138,7 @@ func main() {
 	http.Handle("/auth/callback", web.CallbackHandler(ctx, client))
 	http.Handle("/auth/settoken", web.SetTokenHandler(ctx, client))
 
-	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	http.Handle("/metrics/v1", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	http.Handle("/version", versionHandler(log))
 	http.Handle("/", web.HomeHandler(client.CurrentToken))
 

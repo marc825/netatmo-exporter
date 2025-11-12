@@ -35,9 +35,9 @@ const (
 	flagStaleDuration       = "age-stale"
 	flagNetatmoClientID     = "client-id"
 	flagNetatmoClientSecret = "client-secret"
-	flagEnableHomeCoach      = "enable-homecoach"
-	flagEnableWeather        = "enable-weather"
-	flagEnableGoMetrics      = "enable-go-metrics"
+	flagEnableHomeCoach     = "enable-homecoach"
+	flagEnableWeather       = "enable-weather"
+	flagEnableGoMetrics     = "enable-go-metrics"
 
 	defaultRefreshInterval = 8 * time.Minute
 	defaultStaleDuration   = 60 * time.Minute

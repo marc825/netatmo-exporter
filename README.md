@@ -82,7 +82,7 @@ Usage of netatmo-exporter:
       --token-file string           Path to token file for loading/persisting authentication token.
 ```
 
-After starting the server will offer the metrics on the `/metrics` endpoint, which can be used as a target for prometheus.
+After starting the server will offer the metrics on the `/metrics/v1` endpoint, which can be used as a target for prometheus.
 
 ### Environment variables
 
