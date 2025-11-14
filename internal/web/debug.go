@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/exzz/netatmo-api-go"
-	"github.com/sirupsen/logrus"
 	"github.com/marc825/netatmo-exporter/v2/internal/collector"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
 // DebugNetatmoHandler erstellt einen Handler, der sowohl Weather- als auch HomeCoach-Daten anzeigt
-func DebugNetatmoHandler(log logrus.FieldLogger, weatherReadFunc func() (*netatmo.DeviceCollection, error), homecoachReadFunc func() (*collector.HomeCoachResponse, error)) http.Handler {
+func DebugNetatmoHandler(log logrus.FieldLogger, weatherReadFunc func() (*netatmo.DeviceCollection, error), homecoachReadFunc func() (*collector.HomecoachResponse, error)) http.Handler {
 	return http.HandlerFunc(func(wr http.ResponseWriter, r *http.Request) {
 		// only allow GET
 		if r.Method != http.MethodGet {
@@ -83,7 +83,6 @@ func DebugNetatmoHandler(log logrus.FieldLogger, weatherReadFunc func() (*netatm
 		}
 	})
 }
-
 
 // DebugTokenHandler creates a handler which returns information about the currently-used token
 func DebugTokenHandler(log logrus.FieldLogger, tokenFunc func() (*oauth2.Token, error)) http.Handler {

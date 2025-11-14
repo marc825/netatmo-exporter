@@ -49,7 +49,7 @@ var (
 		LogLevel:        logLevel(logrus.InfoLevel),
 		RefreshInterval: defaultRefreshInterval,
 		StaleDuration:   defaultStaleDuration,
-		EnableHomeCoach: true,
+		EnableHomecoach: true,
 		EnableWeather:   true,
 		EnableGoMetrics: false, // Standard: Go-Metriken ausblenden
 	}
@@ -92,7 +92,7 @@ type Config struct {
 	StaleDuration   time.Duration
 	Netatmo         netatmo.Config
 	// Enable or disable individual collectors
-	EnableHomeCoach bool
+	EnableHomecoach bool
 	EnableWeather   bool
 	EnableGoMetrics bool // Go Runtime Metriken (GC, Memory, Goroutines)
 }
@@ -115,7 +115,7 @@ func Parse(args []string, getEnv func(string) string) (Config, error) {
 	flagSet.DurationVar(&cfg.StaleDuration, flagStaleDuration, cfg.StaleDuration, "Data age to consider as stale. Stale data does not create metrics anymore.")
 	flagSet.StringVarP(&cfg.Netatmo.ClientID, flagNetatmoClientID, "i", cfg.Netatmo.ClientID, "Client ID for NetAtmo app.")
 	flagSet.StringVarP(&cfg.Netatmo.ClientSecret, flagNetatmoClientSecret, "s", cfg.Netatmo.ClientSecret, "Client secret for NetAtmo app.")
-	flagSet.BoolVar(&cfg.EnableHomeCoach, flagEnableHomeCoach, cfg.EnableHomeCoach, "Enable HomeCoach collector.")
+	flagSet.BoolVar(&cfg.EnableHomecoach, flagEnableHomeCoach, cfg.EnableHomecoach, "Enable HomeCoach collector.")
 	flagSet.BoolVar(&cfg.EnableWeather, flagEnableWeather, cfg.EnableWeather, "Enable Weather station collector.")
 	flagSet.BoolVar(&cfg.EnableGoMetrics, flagEnableGoMetrics, cfg.EnableGoMetrics, "Enable Go runtime metrics (GC, memory, goroutines).")
 
@@ -216,9 +216,9 @@ func applyEnvironment(cfg *Config, getenv func(string) string) error {
 		v := strings.ToLower(envEnableHome)
 		switch v {
 		case "true":
-			cfg.EnableHomeCoach = true
+			cfg.EnableHomecoach = true
 		case "false":
-			cfg.EnableHomeCoach = false
+			cfg.EnableHomecoach = false
 		default:
 			return fmt.Errorf("invalid value for %s: %s (expected 'true' or 'false')", envVarEnableHomeCoach, envEnableHome)
 		}

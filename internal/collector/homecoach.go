@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,13 +10,14 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 var (
 	// HomeCoach specific labels
 	homecoachLabels = []string{"device_id", "device_name"}
 
-	// HomeCoach collector status metrics 
+	// HomeCoach collector status metrics
 	homecoachUpDesc = prometheus.NewDesc(
 		prefix+"homecoach_up",
 		"Zero if there was an error during the last refresh try.",
@@ -96,12 +98,12 @@ var (
 	)
 )
 
-// HomeCoachReadFunction defines the interface for reading HomeCoach data from the Netatmo API.
-type HomeCoachReadFunction func() (*HomeCoachResponse, error)
+// HomecoachReadFunction defines the interface for reading HomeCoach data from the Netatmo API.
+type HomecoachReadFunction func() (*HomecoachResponse, error)
 
 type HomeCoachCollector struct {
 	log             logrus.FieldLogger
-	readFunction    HomeCoachReadFunction
+	readFunction    HomecoachReadFunction
 	RefreshInterval time.Duration
 	StaleThreshold  time.Duration
 	clock           func() time.Time
@@ -112,10 +114,10 @@ type HomeCoachCollector struct {
 
 	cacheLock      sync.RWMutex
 	cacheTimestamp time.Time
-	cachedData     *HomeCoachResponse
+	cachedData     *HomecoachResponse
 }
 
-func NewHomeCoachCollector(log logrus.FieldLogger, readFunction HomeCoachReadFunction, refreshInterval, staleDuration time.Duration) *HomeCoachCollector {
+func NewHomecoachCollector(log logrus.FieldLogger, readFunction HomecoachReadFunction, refreshInterval, staleDuration time.Duration) *HomeCoachCollector {
 	return &HomeCoachCollector{
 		log:             log,
 		readFunction:    readFunction,
@@ -202,7 +204,7 @@ func (c *HomeCoachCollector) refreshData(now time.Time) {
 	c.cacheLock.Unlock()
 }
 
-type HomeCoachResponse struct {
+type HomecoachResponse struct {
 	Body struct {
 		Devices []struct {
 			ID              string   `json:"_id"`
@@ -257,7 +259,7 @@ type HomeCoachResponse struct {
 	} `json:"body"`
 }
 
-func FetchHomeCoachData(client *http.Client) (*HomeCoachResponse, error) {
+func FetchHomecoachData(client *http.Client) (*HomecoachResponse, error) {
 	req, err := http.NewRequest(http.MethodGet, "https://api.netatmo.com/api/gethomecoachsdata", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating gethomecoachsdata request: %w", err)
@@ -273,10 +275,25 @@ func FetchHomeCoachData(client *http.Client) (*HomeCoachResponse, error) {
 		return nil, fmt.Errorf("gethomecoachsdata request failed: status %s", resp.Status)
 	}
 
-	var result HomeCoachResponse
+	var result HomecoachResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decoding gethomecoachsdata response: %w", err)
 	}
 
 	return &result, nil
+}
+
+// NewHomecoachReadFunction creates a reader function for HomeCoach data
+func NewHomecoachReadFunction(getCurrentToken func() (*oauth2.Token, error)) HomecoachReadFunction {
+	return func() (*HomecoachResponse, error) {
+		token, err := getCurrentToken()
+		if err != nil {
+			return nil, fmt.Errorf("getting token: %w", err)
+		}
+		if token == nil || !token.Valid() {
+			return nil, fmt.Errorf("token not available or invalid")
+		}
+		httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
+		return FetchHomecoachData(httpClient)
+	}
 }

@@ -36,8 +36,6 @@ var (
 		"Contains the time of the cached data.",
 		nil, nil)
 
-	sensorPrefix = prefix + "sensor_"
-
 	updatedDesc = prometheus.NewDesc(
 		sensorPrefix+"updated",
 		"Timestamp of last update",
@@ -109,15 +107,15 @@ var (
 		nil)
 )
 
-// ReadFunction defines the interface for reading from the Netatmo API.
-type ReadFunction func() (*netatmo.DeviceCollection, error)
+// WeatherReadFunction defines the interface for reading from the Netatmo API.
+type WeatherReadFunction func() (*netatmo.DeviceCollection, error)
 
-// NetatmoCollector is a Prometheus collector for Netatmo sensor values.
-type NetatmoCollector struct {
+// WeatherCollector is a Prometheus collector for Netatmo sensor values.
+type WeatherCollector struct {
 	Log             logrus.FieldLogger
 	RefreshInterval time.Duration
 	StaleThreshold  time.Duration
-	ReadFunction    ReadFunction
+	ReadFunction    WeatherReadFunction
 	clock           func() time.Time
 
 	lastRefresh         time.Time
@@ -128,8 +126,8 @@ type NetatmoCollector struct {
 	cachedData          *netatmo.DeviceCollection
 }
 
-func New(log *logrus.Logger, readFunction ReadFunction, refreshInterval, staleDuration time.Duration) *NetatmoCollector {
-	return &NetatmoCollector{
+func NewWeatherReadFunction(log *logrus.Logger, readFunction WeatherReadFunction, refreshInterval, staleDuration time.Duration) *WeatherCollector {
+	return &WeatherCollector{
 		Log:             log,
 		RefreshInterval: refreshInterval,
 		StaleThreshold:  staleDuration,
@@ -139,7 +137,7 @@ func New(log *logrus.Logger, readFunction ReadFunction, refreshInterval, staleDu
 }
 
 // Describe implements prometheus.Collector
-func (c *NetatmoCollector) Describe(dChan chan<- *prometheus.Desc) {
+func (c *WeatherCollector) Describe(dChan chan<- *prometheus.Desc) {
 	dChan <- netatmoUpDesc
 	dChan <- refreshIntervalDesc
 	dChan <- refreshTimestampDesc
@@ -160,7 +158,7 @@ func (c *NetatmoCollector) Describe(dChan chan<- *prometheus.Desc) {
 }
 
 // Collect implements prometheus.Collector
-func (c *NetatmoCollector) Collect(mChan chan<- prometheus.Metric) {
+func (c *WeatherCollector) Collect(mChan chan<- prometheus.Metric) {
 	now := c.clock()
 	if now.Sub(c.lastRefresh) >= c.RefreshInterval {
 		go c.RefreshData(now)
@@ -193,7 +191,7 @@ func (c *NetatmoCollector) Collect(mChan chan<- prometheus.Metric) {
 }
 
 // RefreshData causes the collector to try to refresh the cached data.
-func (c *NetatmoCollector) RefreshData(now time.Time) {
+func (c *WeatherCollector) RefreshData(now time.Time) {
 	c.Log.Debugf("Refreshing data. Time since last refresh: %s", now.Sub(c.lastRefresh))
 	c.lastRefresh = now
 
@@ -214,7 +212,7 @@ func (c *NetatmoCollector) RefreshData(now time.Time) {
 	c.cachedData = devices
 }
 
-func (c *NetatmoCollector) collectData(ch chan<- prometheus.Metric, device *netatmo.Device, stationName, homeName string) {
+func (c *WeatherCollector) collectData(ch chan<- prometheus.Metric, device *netatmo.Device, stationName, homeName string) {
 	moduleName := device.ModuleName
 	if moduleName == "" {
 		moduleName = "id-" + device.ID

@@ -46,18 +46,10 @@ func main() {
 	log.SetLevel(logrus.Level(cfg.LogLevel))
 	log.Infof("netatmo-exporter %s (commit: %s)", Version, GitCommit)
 
-	// Prometheus Registry
-	registry := prometheus.NewRegistry()
-	if cfg.EnableGoMetrics {
-		log.Info("Go runtime metrics enabled.")
-		registry.MustRegister(prometheus.NewGoCollector())
-		registry.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
-	} else {
-		log.Info("Go runtime metrics disabled.")
-	}
-
+	// Netatmo API client
 	client := netatmo.NewClient(cfg.Netatmo, tokenUpdated(cfg.TokenFile))
 
+	// Load token from file if available
 	if cfg.TokenFile != "" {
 		token, err := loadToken(cfg.TokenFile)
 		switch {
@@ -84,51 +76,68 @@ func main() {
 		log.Warn("No token-file set! Authentication will be lost on restart.")
 	}
 
+	// Prometheus registryV1 V1 separate for Weather + HomeCoach
+	registryV1 := prometheus.NewRegistry()
+	// V2 unified registry combining Weather + HomeCoach
+	registryV2 := prometheus.NewRegistry()
+
+	var weatherReader collector.WeatherReadFunction
+	var homecoachReader collector.HomecoachReadFunction
+
+	// Weather station collector V1
 	if cfg.EnableWeather {
-		metrics := collector.New(log, client.Read, cfg.RefreshInterval, cfg.StaleDuration)
-		registry.MustRegister(metrics)
+		// Weather reader function for unified collector V2
+		weatherReader = client.Read
+
+		// Weather reader function V1
+		weatherMetrics := collector.NewWeatherReadFunction(log, weatherReader, cfg.RefreshInterval, cfg.StaleDuration)
+		registryV1.MustRegister(weatherMetrics)
 	} else {
 		log.Info("Weather station collector disabled by configuration.")
 	}
 
-	if cfg.EnableHomeCoach {
-		homeCoachMetrics := collector.NewHomeCoachCollector(log, func() (*collector.HomeCoachResponse, error) {
-			token, err := client.CurrentToken()
-			if err != nil {
-				return nil, fmt.Errorf("getting token: %w", err)
-			}
-			if token == nil || !token.Valid() {
-				return nil, fmt.Errorf("token not available or invalid")
-			}
+	if cfg.EnableHomecoach {
+		// Homecoach reader function V1 + V2 Definition
+		homecoachReader = collector.NewHomecoachReadFunction(client.CurrentToken)
 
-			httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
-			return collector.FetchHomeCoachData(httpClient)
-		}, cfg.RefreshInterval, cfg.StaleDuration)
-		registry.MustRegister(homeCoachMetrics)
+		// Homecoach reader function V1
+		homecoachMetrics := collector.NewHomecoachCollector(log, homecoachReader, cfg.RefreshInterval, cfg.StaleDuration)
+		registryV1.MustRegister(homecoachMetrics)
 	} else {
 		log.Info("HomeCoach collector disabled by configuration.")
 	}
 
+	// Token metrics for V1 + V2
 	tokenMetric := token.Metric(client.CurrentToken)
-	registry.MustRegister(tokenMetric)
+	registryV1.MustRegister(tokenMetric)
+	registryV2.MustRegister(tokenMetric)
+
+	// Unified collector V2 for Weather + HomeCoach
+	unifiedCollector := collector.UnifiedCollector(
+		log,
+		weatherReader,
+		homecoachReader,
+		cfg.RefreshInterval,
+		cfg.StaleDuration,
+		cfg.EnableWeather,
+		cfg.EnableHomecoach,
+	)
+	registryV2.MustRegister(unifiedCollector)
+
+	if cfg.EnableGoMetrics {
+		log.Info("Go runtime metrics enabled.")
+		registryV1.MustRegister(prometheus.NewGoCollector())
+		registryV1.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+		registryV2.MustRegister(prometheus.NewGoCollector())
+		registryV2.MustRegister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	} else {
+		log.Info("Go runtime metrics disabled.")
+	}
 
 	if cfg.DebugHandlers {
 		// Combined debug handler for Weather + HomeCoach
-		homecoachReadFunc := func() (*collector.HomeCoachResponse, error) {
-			token, err := client.CurrentToken()
-			if err != nil {
-				return nil, fmt.Errorf("getting token: %w", err)
-			}
-			if token == nil || !token.Valid() {
-				return nil, fmt.Errorf("token not available or invalid")
-			}
-
-			httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
-			return collector.FetchHomeCoachData(httpClient)
-		}
-
-	http.Handle("/debug/netatmo", web.DebugNetatmoHandler(log, client.Read, homecoachReadFunc))
-	http.Handle("/debug/token", web.DebugTokenHandler(log, client.CurrentToken))
+		http.Handle("/debug/netatmo", web.DebugNetatmoHandler(log, client.Read, homecoachReader))
+		http.Handle("/debug/token", web.DebugTokenHandler(log, client.CurrentToken))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -138,7 +147,8 @@ func main() {
 	http.Handle("/auth/callback", web.CallbackHandler(ctx, client))
 	http.Handle("/auth/settoken", web.SetTokenHandler(ctx, client))
 
-	http.Handle("/metrics/v1", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	http.Handle("/metrics/v1", promhttp.HandlerFor(registryV1, promhttp.HandlerOpts{}))
+	http.Handle("/metrics/v2", promhttp.HandlerFor(registryV2, promhttp.HandlerOpts{}))
 	http.Handle("/version", versionHandler(log))
 	http.Handle("/", web.HomeHandler(client.CurrentToken))
 
