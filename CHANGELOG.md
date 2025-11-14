@@ -4,6 +4,78 @@ This changelog contains the changes made between releases. The versioning follow
 
 ## Unreleased
 
+## [3.0.0+fork] - 2025-11-14
+
+### Added
+
+- **HomeCoach Support**: Full integration of Netatmo HomeCoach devices
+  - Renamed old metrics endpoint `/metrics/v1` with separate collectors for Weather and HomeCoach
+    - Maintained backward compatibility for existing dashboards reliant on Weather Metrics
+  - New unified metrics endpoint `/metrics/v2` with consistent label schema across weather and homecoach devices
+  - HomeCoach-specific metrics: temperature, humidity, CO2, noise, pressure, health index, WiFi signal
+- **Feature Flags**: Granular control over enabled collectors
+  - `--enable-weather` / `NETATMO_ENABLE_WEATHER`: Enable/disable Weather station collector (default: true)
+  - `--enable-homecoach` / `NETATMO_ENABLE_HOMECOACH`: Enable/disable HomeCoach collector (default: true)
+  - `--enable-go-metrics` / `NETATMO_ENABLE_GO_METRICS`: Enable/disable Go runtime metrics (default: false)
+- **Enhanced Debug Handler**: Combined debug endpoint showing both Weather and HomeCoach data
+  - Accessible at `/debug/netatmo` when debug handlers are enabled
+  - Returns JSON with separate sections for weather and homecoach data
+
+### Changed
+
+- **Refactored Collector Architecture**: Split monolithic collector into modular components
+  - `internal/collector/weather.go`: Weather station specific collector
+  - `internal/collector/homecoach.go`: HomeCoach specific collector
+  - `internal/collector/common.go`: Shared V2 unified collector and helper functions
+- **Dual Registry System**: Separate Prometheus registries for V1 and V2 metrics
+  - V1 registry maintains backward compatibility with existing dashboards
+  - V2 registry provides unified metrics schema for new deployments
+- **Go Runtime Metrics**: Now disabled by default to reduce metric noise
+  - Can be enabled via `--enable-go-metrics` flag when needed for debugging
+
+## [2.4.2+fork] - 2025-11-13
+
+### Changed
+
+- Improved code consistency across collector files
+- Code formatting and style improvements
+
+## [2.4.1+fork] - 2025-11-12
+
+### Changed
+
+- Small fixes and preparation for new V2 endpoint
+- Internal refactoring for upcoming unified metrics API
+
+## [2.4.0+fork] - 2025-11-11
+
+### Added
+- Docker usage instructions in README
+- Environment variable configuration documentation
+- WiFi signal strength metric to HomeCoach collector
+- Combined debug handler for Weather and HomeCoach data at `/debug/netatmo`
+
+### Changed
+
+- Updated GitHub workflows: removed old workflows, added new Docker image build and push workflow
+- Enhanced HomeCoach data structure
+- Updated maintainer information and module path
+
+## [2.3.0+fork] - 2025-11-10
+
+### Added
+
+- Support to disable Go runtime metrics in endpoint
+- Configuration option `--enable-go-metrics` / `NETATMO_ENABLE_GO_METRICS`
+
+## [2.2.0+fork] - 2025-11-09
+
+### Added
+
+- Support for Netatmo Homecoach devices
+- HomeCoach-specific status metrics to Prometheus monitoring
+- Initial HomeCoach collector implementation with metrics endpoint
+
 ## [2.1.2] - 2025-08-21
 
 ### Changed
