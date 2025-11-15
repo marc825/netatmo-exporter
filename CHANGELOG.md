@@ -33,6 +33,13 @@ This changelog contains the changes made between releases. The versioning follow
 - **Go Runtime Metrics**: Now disabled by default to reduce metric noise
   - Can be enabled via `--enable-go-metrics` flag when needed for debugging
 
+## [2.5.1+fork] - 2025-11-15
+
+### Changed
+
+- Improved Weather data structure consistency
+
+
 ## [2.5.0+fork] - 2025-11-15
 
 ### Added
