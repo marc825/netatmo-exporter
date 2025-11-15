@@ -46,6 +46,11 @@ func main() {
 	log.SetLevel(logrus.Level(cfg.LogLevel))
 	log.Infof("netatmo-exporter %s (commit: %s)", Version, GitCommit)
 
+	// Validate that at least one collector is enabled
+	if !cfg.EnableWeather && !cfg.EnableHomecoach {
+		log.Fatal("At least one collector must be enabled. Remove NETATMO_ENABLE_WEATHER=false or NETATMO_ENABLE_HOMECOACH=false from the environment variables.")
+	}
+
 	// Netatmo API client
 	client := netatmo.NewClient(cfg.Netatmo, tokenUpdated(cfg.TokenFile))
 
@@ -143,14 +148,15 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	http.Handle("/auth/authorize", web.AuthorizeHandler(cfg.ExternalURL, client))
-	http.Handle("/auth/callback", web.CallbackHandler(ctx, client))
-	http.Handle("/auth/settoken", web.SetTokenHandler(ctx, client))
+	http.Handle("/auth/authorize", web.AuthorizeHandler(cfg.ExternalURL, client, cfg.EnableWeather, cfg.EnableHomecoach))
+	http.Handle("/auth/callback", web.CallbackHandler(ctx, client, log))
+	http.Handle("/auth/settoken", web.SetTokenHandler(ctx, client, log))
+	http.Handle("/auth/deletetoken", web.DeleteTokenHandler(ctx, client, cfg.TokenFile, log))
 
 	http.Handle("/metrics/v1", promhttp.HandlerFor(registryV1, promhttp.HandlerOpts{}))
 	http.Handle("/metrics/v2", promhttp.HandlerFor(registryV2, promhttp.HandlerOpts{}))
 	http.Handle("/version", versionHandler(log))
-	http.Handle("/", web.HomeHandler(client.CurrentToken))
+	http.Handle("/", web.HomeHandler(client.CurrentToken, log))
 
 	log.Infof("Listen on %s...", cfg.Addr)
 	log.Fatal(http.ListenAndServe(cfg.Addr, nil))
@@ -207,9 +213,11 @@ func saveToken(client *netatmo.Client, fileName string) error {
 	token, err := client.CurrentToken()
 	switch {
 	case err == netatmo.ErrNotAuthenticated:
+		log.Info("No token to save (not authenticated).")
 		return nil
 	case err != nil:
-		return fmt.Errorf("error retrieving token: %w", err)
+		log.Info("No token to save (not authenticated).")
+		return nil
 	default:
 	}
 

@@ -8,19 +8,23 @@ import (
 	"net/url"
 
 	"github.com/exzz/netatmo-api-go"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )
 
-func AuthorizeHandler(externalURL string, client *netatmo.Client) http.HandlerFunc {
+func AuthorizeHandler(externalURL string, client *netatmo.Client, enableWeather, enableHomecoach bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		redirectURL := externalURL + "/auth/callback"
-		authURL := client.AuthCodeURL(redirectURL, "definitelyrandom")
+		baseAuthURL := client.AuthCodeURL(redirectURL, "definitelyrandom")
+
+		// Build the final auth URL with dynamic scopes
+		authURL := BuildAuthURL(baseAuthURL, enableWeather, enableHomecoach)
 
 		http.Redirect(w, r, authURL, http.StatusFound)
 	}
 }
 
-func CallbackHandler(ctx context.Context, client *netatmo.Client) http.HandlerFunc {
+func CallbackHandler(ctx context.Context, client *netatmo.Client, log logrus.FieldLogger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		values := r.URL.Query()
 		if err := doCallback(ctx, client, values); err != nil {
@@ -29,6 +33,7 @@ func CallbackHandler(ctx context.Context, client *netatmo.Client) http.HandlerFu
 			return
 		}
 
+		log.Info("Successfully authenticated and created new token via OAuth")
 		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
@@ -44,7 +49,7 @@ func doCallback(ctx context.Context, client *netatmo.Client, query url.Values) e
 	return client.Exchange(ctx, code, state)
 }
 
-func SetTokenHandler(ctx context.Context, client *netatmo.Client) http.HandlerFunc {
+func SetTokenHandler(ctx context.Context, client *netatmo.Client, log logrus.FieldLogger) http.HandlerFunc {
 	return func(wr http.ResponseWriter, r *http.Request) {
 		refreshToken := r.FormValue("refresh_token")
 		if refreshToken == "" {
@@ -57,6 +62,7 @@ func SetTokenHandler(ctx context.Context, client *netatmo.Client) http.HandlerFu
 		}
 		client.InitWithToken(ctx, token)
 
+		log.Info("Successfully set new token manually via refresh token")
 		http.Redirect(wr, r, "/", http.StatusFound)
 	}
 }

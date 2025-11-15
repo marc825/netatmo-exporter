@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/exzz/netatmo-api-go"
 	"golang.org/x/oauth2"
 
 	_ "embed"
@@ -25,7 +24,7 @@ type homeContext struct {
 
 // HomeHandler produces a simple website showing the exporter's status in a human-readable form.
 // It provides links to other information and help for authentication as well.
-func HomeHandler(tokenFunc func() (*oauth2.Token, error)) http.Handler {
+func HomeHandler(tokenFunc func() (*oauth2.Token, error), log interface{ Warnf(string, ...interface{}) }) http.Handler {
 	homeTemplate, err := template.New("home.html").Funcs(map[string]any{
 		"remaining": remaining,
 	}).Parse(homeHtml)
@@ -35,16 +34,19 @@ func HomeHandler(tokenFunc func() (*oauth2.Token, error)) http.Handler {
 
 	return http.HandlerFunc(func(wr http.ResponseWriter, r *http.Request) {
 		token, err := tokenFunc()
-		switch {
-		case err == netatmo.ErrNotAuthenticated:
-		case err != nil:
-			http.Error(wr, fmt.Sprintf("Error getting token: %s", err), http.StatusInternalServerError)
-			return
-		default:
+		if err != nil {
+			// Log that token retrieval failed. We cannot distinguish between:
+			// - No token was ever set (expected)
+			// - Token was deleted (expected)
+			// - Token is expired and refresh failed (unexpected)
+			// API limitation: the underlying netatmo.Client returns nil token + error in all these cases
+			// Without API changes to return different error types, we log all cases equally.
+			log.Warnf("Token invalid or no token found: %v", err)
+			token = nil
 		}
 
 		context := homeContext{
-			Valid:          token.Valid(),
+			Valid:          token != nil && token.Valid(),
 			Token:          token,
 			NetAtmoDevSite: netatmoDevSite,
 		}
