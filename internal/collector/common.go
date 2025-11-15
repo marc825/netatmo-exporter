@@ -35,11 +35,11 @@ var (
 	v2HealthIndexDesc   = prometheus.NewDesc(sensorPrefix+"health_index", "Air quality health index (0: Healthy, 1: Fine, 2: Fair, 3: Poor, 4: Unhealthy)", v2LabelNames, nil)
 
 	// Weather meta metrics
-	v2WeatherUpDesc               = prometheus.NewDesc(prefix+"up", "Zero if there was an error during the last refresh try.", nil, nil)
-	v2WeatherRefreshIntervalDesc  = prometheus.NewDesc(prefix+"refresh_interval_seconds", "Contains the configured refresh interval in seconds. This is provided as a convenience for calculations with the cache update time.", nil, nil)
-	v2WeatherRefreshTimestampDesc = prometheus.NewDesc(prefix+"last_refresh_time", "Contains the time of the last refresh try, successful or not.", nil, nil)
-	v2WeatherRefreshDurationDesc  = prometheus.NewDesc(prefix+"last_refresh_duration_seconds", "Contains the time it took for the last refresh to complete, even if it was unsuccessful.", nil, nil)
-	v2WeatherCacheTimestampDesc   = prometheus.NewDesc(prefix+"cache_updated_time", "Contains the time of the cached data.", nil, nil)
+	v2WeatherUpDesc               = prometheus.NewDesc(prefix+"weather_up", "Zero if there was an error during the last refresh try.", nil, nil)
+	v2WeatherRefreshIntervalDesc  = prometheus.NewDesc(prefix+"weather_refresh_interval_seconds", "Contains the configured refresh interval in seconds. This is provided as a convenience for calculations with the cache update time.", nil, nil)
+	v2WeatherRefreshTimestampDesc = prometheus.NewDesc(prefix+"weather_last_refresh_time", "Contains the time of the last refresh try, successful or not.", nil, nil)
+	v2WeatherRefreshDurationDesc  = prometheus.NewDesc(prefix+"weather_last_refresh_duration_seconds", "Contains the time it took for the last refresh to complete, even if it was unsuccessful.", nil, nil)
+	v2WeatherCacheTimestampDesc   = prometheus.NewDesc(prefix+"weather_cache_updated_time", "Contains the time of the cached data.", nil, nil)
 
 	// Homecoach meta metrics
 	v2HomecoachUpDesc               = prometheus.NewDesc(prefix+"homecoach_up", "Zero if there was an error during the last refresh try.", nil, nil)
