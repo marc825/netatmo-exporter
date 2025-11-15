@@ -136,7 +136,7 @@ func main() {
 
 	if cfg.DebugHandlers {
 		// Combined debug handler for Weather + HomeCoach
-		http.Handle("/debug/netatmo", web.DebugNetatmoHandler(log, client.Read, homecoachReader))
+		http.Handle("/debug/netatmo", web.DebugNetatmoHandler(log, weatherReader, homecoachReader))
 		http.Handle("/debug/token", web.DebugTokenHandler(log, client.CurrentToken))
 	}
 

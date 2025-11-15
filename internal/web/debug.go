@@ -30,37 +30,47 @@ func DebugNetatmoHandler(log logrus.FieldLogger, weatherReadFunc func() (*netatm
 		var weatherErr, homecoachErr error
 
 		// Weather Data
-		weatherData, weatherErr := weatherReadFunc()
-		if weatherErr != nil {
-			errMsg := fmt.Sprintf("Error retrieving weather data: %s", weatherErr)
-			response.Weather = map[string]string{"error": errMsg}
-			log.Warnf("Debug handler: %s", errMsg)
-		} else if weatherData != nil {
-			// extract only the Devices
-			response.Weather = map[string]interface{}{
-				"devices": weatherData.Devices(),
+		if weatherReadFunc != nil {
+			var weatherData *netatmo.DeviceCollection
+			weatherData, weatherErr = weatherReadFunc()
+			if weatherErr != nil {
+				errMsg := fmt.Sprintf("Error retrieving weather data: %s", weatherErr)
+				response.Weather = map[string]string{"error": errMsg}
+				log.Warnf("Debug handler: %s", errMsg)
+			} else if weatherData != nil {
+				// extract only the Devices
+				response.Weather = map[string]interface{}{
+					"devices": weatherData.Devices(),
+				}
+			} else {
+				response.Weather = map[string]interface{}{
+					"devices": []interface{}{},
+				}
 			}
 		} else {
-			response.Weather = map[string]interface{}{
-				"devices": []interface{}{},
-			}
+			response.Weather = map[string]string{"status": "disabled"}
 		}
 
 		// HomeCoach Data
-		homecoachData, homecoachErr := homecoachReadFunc()
-		if homecoachErr != nil {
-			errMsg := fmt.Sprintf("Error retrieving homecoach data: %s", homecoachErr)
-			response.HomeCoach = map[string]string{"error": errMsg}
-			log.Warnf("Debug handler: %s", errMsg)
-		} else if homecoachData != nil && homecoachData.Body.Devices != nil {
-			// extract only the devices
-			response.HomeCoach = map[string]interface{}{
-				"devices": homecoachData.Body.Devices,
+		if homecoachReadFunc != nil {
+			var homecoachData *collector.HomecoachResponse
+			homecoachData, homecoachErr = homecoachReadFunc()
+			if homecoachErr != nil {
+				errMsg := fmt.Sprintf("Error retrieving homecoach data: %s", homecoachErr)
+				response.HomeCoach = map[string]string{"error": errMsg}
+				log.Warnf("Debug handler: %s", errMsg)
+			} else if homecoachData != nil && homecoachData.Body.Devices != nil {
+				// extract only the devices
+				response.HomeCoach = map[string]interface{}{
+					"devices": homecoachData.Body.Devices,
+				}
+			} else {
+				response.HomeCoach = map[string]interface{}{
+					"devices": []interface{}{},
+				}
 			}
 		} else {
-			response.HomeCoach = map[string]interface{}{
-				"devices": []interface{}{},
-			}
+			response.HomeCoach = map[string]string{"status": "disabled"}
 		}
 
 		// http status

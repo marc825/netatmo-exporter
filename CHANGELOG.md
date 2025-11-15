@@ -4,7 +4,7 @@ This changelog contains the changes made between releases. The versioning follow
 
 ## Unreleased
 
-## [3.0.0+fork] - 2025-11-14
+## [3.0.0+fork]
 
 ### Added
 
@@ -32,6 +32,12 @@ This changelog contains the changes made between releases. The versioning follow
   - V2 registry provides unified metrics schema for new deployments
 - **Go Runtime Metrics**: Now disabled by default to reduce metric noise
   - Can be enabled via `--enable-go-metrics` flag when needed for debugging
+
+## [2.4.3+fork] - 2025-11-15
+
+### Fixed
+
+- Debug handler `/debug/netatmo` now correctly handles disabled collectors (Weather/HomeCoach)
 
 ## [2.4.2+fork] - 2025-11-13
 
