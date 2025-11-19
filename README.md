@@ -19,7 +19,7 @@ This fork includes all features of the original netatmo-exporter plus the follow
 
 #### Docker
 
-latest dev build marc825/netatmo-exporter:dev
+latest dev build marc825/netatmo-exporter:latest
 
 Example using `docker run` and volume for token persistence:
 
