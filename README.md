@@ -34,7 +34,7 @@ docker run -d --name netatmo-exporter --restart unless-stopped `
   -e NETATMO_ENABLE_HOMECOACH="true" `
   -e NETATMO_ENABLE_GO_METRICS="false" `
   -e DEBUG_HANDLERS="false" `
-  marc825/netatmo-exporter:dev
+  marc825/netatmo-exporter:latest
 ```
 
 
